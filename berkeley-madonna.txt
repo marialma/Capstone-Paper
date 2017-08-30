@@ -1,0 +1,159 @@
+{This is the code I ended up using for my model.}
+
+METHOD RK4
+
+STARTTIME = 365*65
+STOPTIME=365*90
+DT = 1
+
+{Equations}
+
+{Pharyngeal Infection: No drug recovery, since no drugs for pharyngeal, since all pharyngeal is asymptomatic}
+
+{High risk group. F indicates Female, M indicates male. P indicates pharyngeal; G indicates genital. S, A, I, R indicate individual components.}
+
+d/dt(S_F_P_H) = recP*A_F_P_H + recP*R_F_P_H - lambdaPF*S_F_P_H 
+d/dt(A_F_P_H) = (lambdaPF*S_F_P_H*(1 - amrPerc)) - recP*A_F_P_H
+d/dt(R_F_P_H) = lambdaPF*S_F_P_H*(amrPerc) - recP*R_F_P_H
+
+d/dt(S_F_G_H) = -lambdaGF*S_F_G_H + recG*A_F_G_H + d_rec*I_F_G_H + recG*R_F_G_H
+d/dt(I_F_G_H) = lambdaGF*S_F_G_H*(1 - amrPerc)*(1 - asymlikF) - d_rec*I_F_G_H - amr*I_F_G_H
+d/dt(A_F_G_H) = lambdaGF*S_F_G_H*(1 - amrPerc)*(asymlikF) - recG*A_F_G_H
+d/dt(R_F_G_H) = lambdaGF*S_F_G_H*(amrPerc) - recG*R_F_G_H + amr*I_F_G_H 
+
+d/dt(S_M_G_H) = d_rec*I_M_G_H + recG*A_M_G_H + recG*R_M_G_H - lambdaGF*S_M_G_H - lambdaPF*S_M_G_H
+d/dt(I_M_G_H) = lambdaGF*S_M_G_H*(1 - amrPerc)*(1 - asymlikM) + lambdaPF*S_M_G_H*(1 - amrPerc)*(1 - asymlikM) - d_rec*I_M_G_H - amr*I_M_G_H
+d/dt(A_M_G_H) = lambdaGF*S_M_G_H*(1 - amrPerc)*(asymlikM) + lambdaPF*S_M_G_H*(1- amrPerc)*(asymlikM) - recG*A_M_G_H 
+d/dt(R_M_G_H) = lambdaGF*S_M_G_H*amrPerc + lambdaPF*S_M_G_H*amrPerc - recG*R_M_G_H + amr*I_M_G_H 
+
+{Low risk group. Same nomenclature applies.}
+d/dt(S_F_P_L) = -lambdaPL*S_F_P_L + recP*A_F_P_L + recP*R_F_P_L
+d/dt(A_F_P_L) = lambdaPL*S_F_P_L*(1-amrPerc) - recP*A_F_P_L 
+d/dt(R_F_P_L) = lambdaPL*S_F_P_L*(amrPerc) - recP*R_F_P_L
+
+d/dt(S_F_G_L) = -lambdaGL*S_F_G_L + recG*A_F_G_L + d_rec*I_F_G_L + recG*R_F_G_L
+d/dt(I_F_G_L) = lambdaGL*S_F_G_L*(1-amrPerc)*(1-asymlikF) - d_rec*I_F_G_L - amr*I_F_G_L
+d/dt(A_F_G_L) = lambdaGL*S_F_G_L*(1-amrPerc)*(asymlikF) - recG*A_F_G_L 
+d/dt(R_F_G_L) = lambdaGL*S_F_G_L*(amrPerc) - recG*R_F_G_L + amr*I_F_G_L 
+
+d/dt(S_M_G_L) = -lambdaGL*S_M_G_L - lambdaPL*S_M_G_L + d_rec*I_M_G_L + recG*A_M_G_L + recG*R_M_G_L
+d/dt(I_M_G_L) = lambdaGL*S_M_G_L*(1-amrPerc)*(1-asymlikM) + lambdaPL*S_M_G_L*(1-amrPerc)*(1-asymlikM) - d_rec*I_M_G_L - amr*I_M_G_L
+d/dt(A_M_G_L) = lambdaGL*S_M_G_L*(1-amrPerc)*(asymlikM) + lambdaPL*S_M_G_L*(1-amrPerc)*(asymlikM) - recG*A_M_G_L 
+d/dt(R_M_G_L) = lambdaGL*S_M_G_L*amrPerc + lambdaPL*S_M_G_L*amrPerc + amr*I_M_G_L - recG*R_M_G_L
+
+{Calculating numbers to be used for graphs. The /2 for women are used because the women are modeled twice, so must be merged into one.)
+S = ((S_F_P_H + S_F_G_H  + S_F_P_L + S_F_G_L)/2 ) + S_M_G_L + S_M_G_H
+S_H = (( S_F_P_H + S_F_G_H)/2) + S_M_G_H
+S_L = ((S_F_P_L + S_F_G_L)/2) + S_M_G_L 
+
+A = ((A_F_P_H + A_F_G_H + A_F_P_L + A_F_G_L)/2) + A_M_G_L+ A_M_G_H 
+A_H = ((( A_F_P_H + A_F_G_H)/2)+ A_M_G_H)
+A_L = ((A_F_P_L + A_F_G_L)/2)+A_M_G_L 
+
+I = (I_F_G_H + I_M_G_H + I_F_G_L + I_M_G_L )
+I_H = ( I_F_G_H + I_M_G_H)
+I_L = ( I_F_G_L + I_M_G_L )
+
+R = (((R_F_P_H + R_F_G_H + R_F_P_L + R_F_G_L)/2)+ R_M_G_H + R_M_G_L )
+R_H = ( ((R_F_P_H + R_F_G_H)/2) + R_M_G_H)
+R_L = (((R_F_P_L + R_F_G_L)/2) + R_M_G_L )
+
+N = S + A + I + R
+
+PercentWomenInfected = ((R_F_G_H + R_F_G_L) / 50000)*100
+
+Inf_H = A_H + I_H + R_H
+Inf_L = A_L + I_L + R_L
+Infected = Inf_H + Inf_L
+
+N_H = S_H + A_H + I_H + R_H
+N_L = S_L + A_L + I_L + R_L
+
+prev_H = Inf_H/  N_H
+prev_L = Inf_L / N_L
+prevalence = (A+I+R) /N
+
+{Introducing emergence of resistance. Alter 365*65 to change when to introduce resistance.}
+
+amrPerc = IF (TIME < (365*65)) THEN 0 ELSE R/ (N-S)
+
+{Infection Rate }
+
+PH = 0.05 *1.2 *(1-oralcondom)
+GH = .019 *1.2 *(1-condom_use)
+PL = .0038 *1.2 *(1-oralcondom)
+GL = .0043 *1.2 * (1-condom_use)
+
+{Condom use rates. Use Batch runs to change these values.}
+oralcondom = 0
+condom_use = 0
+
+{Population contact rates}
+hrg = 0.028
+lrg = 0.972
+
+mixH = ((PH*hrg)/(PH*hrg + PL*lrg))
+mixGH = (GH*hrg /(GH*hrg + GL*lrg))
+
+mixL = 1 - mixH
+mixGL = 1 - mixGH
+
+mixrateP = mixH*prev_H + mixL*prev_L
+mixrateG = mixGH*prev_H + mixGL*prev_L
+
+lambdaPF = mixrateP*PH*trans
+lambdaGF = mixrateG*GH*trans
+lambdaPL = mixrateP*PL*trans
+lambdaGL = mixrateG*GL*trans
+
+trans = 0.8
+
+{Likelihood of asymptomatic infection}
+
+asymlikF = 0.61
+asymlikM = 0.11
+
+{Natural recovery rate (per day)}
+recG = (1/185)
+recP = (1/140)
+
+{Drug mediated recovery rate(per day)}
+d_rec = 1/20
+
+{Resistance gain: mutation rate * generations per day *number of resistance giving mutations }
+
+M = (1/10^7)*16*(14/2000000)
+
+{going from 1 -> R. This is *I}
+
+amr = M*I
+
+{Initial conditions}
+
+init S_F_P_H =50000*hrg
+init A_F_P_H = 0
+init R_F_P_H = 0
+
+init S_F_G_H =50000*hrg
+init I_F_G_H = 0
+init A_F_G_H = 0
+init R_F_G_H = 0
+
+init S_M_G_H = 50000*hrg
+init I_M_G_H = 0
+init A_M_G_H = 1
+init R_M_G_H = 0
+
+init S_F_P_L = 50000*lrg
+init A_F_P_L = 0
+init R_F_P_L = 0
+
+init S_F_G_L = 50000*lrg
+init I_F_G_L = 0
+init A_F_G_L = 0
+init R_F_G_L = 0
+
+init S_M_G_L = 50000*lrg
+init I_M_G_L = 0
+init A_M_G_L = 0
+init R_M_G_L = 0
